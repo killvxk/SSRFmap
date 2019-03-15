@@ -5,13 +5,14 @@ import logging
 import urllib.parse
 
 class Requester(object):
-    host   = ""
-    method = ""
-    action = ""
-    headers = {}
-    data    = {}
+    protocol   = "http"
+    host       = ""
+    method     = ""
+    action     = ""
+    headers    = {}
+    data       = {}
 
-    def __init__(self, path):
+    def __init__(self, path, uagent, ssl):
         try:
             # Read file request
             with open(path, 'r') as f:
@@ -31,11 +32,21 @@ class Requester(object):
                 name, value = header.split(': ')
                 self.headers[name] = value
             self.host = self.headers['Host']
+
+            # Parse user-agent        
+            if uagent != None:
+                self.headers['User-Agent'] = uagent
             
             # Parse data
             self.data_to_dict(content[-1])
+
+            # Handling HTTPS requests
+            if ssl == True:
+                self.protocol   = "https"
+
         except Exception as e:
-            logging.error("Bad Format")
+            logging.warning("Bad Format or Raw data !")
+
 
     def data_to_dict(self, data):
         if self.method == "POST":
@@ -44,15 +55,20 @@ class Requester(object):
             if self.headers['Content-Type'] and self.headers['Content-Type'] == "application/json":
                 self.data = json.loads(data)
 
+            # Handle XML data
+            elif self.headers['Content-Type'] and self.headers['Content-Type'] == "application/xml":
+                self.data['__xml__'] = data
+
             # Handle FORM data
             else:
+                print(data)
                 for arg in data.split("&"):
                     regex = re.compile('(.*)=(.*)')
                     for name,value in regex.findall(arg):
                         self.data[name] = value
 
 
-    def do_request(self, param, value):
+    def do_request(self, param, value, timeout=3, stream=False):
         try:
             if self.method == "POST":
                 # Copying data to avoid multiple variables edit
@@ -60,33 +76,58 @@ class Requester(object):
                 if param in data_injected:
                     data_injected[param] = value
             
-
                     # Handle JSON data
                     if self.headers['Content-Type'] and self.headers['Content-Type'] == "application/json":
                         r = requests.post(
-                            "http://" + self.host + self.action, 
+                            self.protocol + "://" + self.host + self.action, 
                             headers=self.headers, 
                             json=data_injected,
-                            timeout=3
+                            timeout=timeout,
+                            stream=stream,
+                            verify=False
                         )
 
                     # Handle FORM data
                     else:
                         r = requests.post(
-                            "http://" + self.host + self.action, 
+                            self.protocol + "://" + self.host + self.action, 
                             headers=self.headers, 
                             data=data_injected,
-                            timeout=3
+                            timeout=timeout,
+                            stream=stream,
+                            verify=False
                         )
+                else:
+                    if self.headers['Content-Type'] and self.headers['Content-Type'] == "application/xml":
+                        if "*FUZZ*" in data_injected['__xml__']:
+
+                            # replace the injection point with the payload
+                            data_xml = data_injected['__xml__']
+                            data_xml = data_xml.replace('*FUZZ*', value)
+
+                            r = requests.post(
+                                self.protocol + "://" + self.host + self.action, 
+                                headers=self.headers, 
+                                data=data_xml,
+                                timeout=timeout,
+                                stream=stream,
+                                verify=False
+                            )                            
+                            
+                        else:
+                            logging.error("Not injection point found !")
+                            exit(1)   
             else:
                 # String is immutable, we don't have to do a "forced" copy
                 regex = re.compile(param+"=(\w+)")
                 value = urllib.parse.quote(value, safe='')
                 data_injected = re.sub(regex, param+'='+value, self.action)
                 r = requests.get(
-                    "http://" + self.host + data_injected, 
+                    self.protocol + "://" + self.host + data_injected, 
                     headers=self.headers,
-                    timeout=3
+                    timeout=timeout,
+                    stream=stream,
+                    verify=False
                 )
         except Exception as e:
             return None

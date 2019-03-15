@@ -5,17 +5,23 @@ import string
 def wrapper_file(data):
     return "file://{}".format(data)
 
+def wrapper_unc(data, ip):
+    return "\\\\{}\\{}".format(ip, data)
+    
 def wrapper_gopher(data, ip, port):
     return "gopher://{}:{}/_{}".format(ip, port, data)
 
 def wrapper_dict(data, ip, port):
     return "dict://{}:{}/{}".format(ip, port, data)
 
-def wrapper_http(data, ip, port):
+def wrapper_http(data, ip, port, usernm=False, passwd=False):
+    if usernm != False and passwd != False:
+        return "http://{}:{}@{}:{}/{}".format(usernm, passwd, ip, port, data)
     return "http://{}:{}/{}".format(ip, port, data)
 
 def wrapper_https(data, ip, port):
     return "http://{}:{}/{}".format(ip, port, data)
+
 
 def diff_text(text1, text2):
     diff = ""
@@ -125,7 +131,6 @@ def ip_dns_redirect(ips, ip):
         ips.add("1ynrnhl.xip.io")
 
 def gen_ip_list(ip, level):
-    print(level)
     ips = set()
 
     if level == 1:
@@ -149,8 +154,6 @@ def gen_ip_list(ip, level):
         ip_dotless_decimal_with_overflow(ips, ip)
         ip_dotted_hexadecimal(ips, ip)
         ip_dotted_octal(ips, ip)
-
-
 
     for ip in ips:
         yield ip

